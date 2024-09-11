@@ -248,6 +248,8 @@ class Client extends MatrixApi {
                 httpClient ?? http.Client(), defaultNetworkRequestTimeout)) {
     if (logLevel != null) Logs().level = logLevel;
     importantStateEvents.addAll([
+      EventTypes.ZoConfig,
+      EventTypes.ZoOzoneBanner,
       EventTypes.RoomName,
       EventTypes.RoomAvatar,
       EventTypes.Encryption,
