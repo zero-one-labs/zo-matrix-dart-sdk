@@ -76,9 +76,13 @@ class Room {
 
   Timer? _clearTypingIndicatorTimer;
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() =>
+      {
         'id': id,
-        'membership': membership.toString().split('.').last,
+        'membership': membership
+            .toString()
+            .split('.')
+            .last,
         'highlight_count': highlightCount,
         'notification_count': notificationCount,
         'prev_batch': prev_batch,
@@ -91,7 +95,7 @@ class Room {
       client: client,
       id: json['id'],
       membership: Membership.values.singleWhere(
-        (m) => m.toString() == 'Membership.${json['membership']}',
+            (m) => m.toString() == 'Membership.${json['membership']}',
         orElse: () => Membership.join,
       ),
       notificationCount: json['notification_count'],
@@ -117,7 +121,7 @@ class Room {
     }
     final allStates = await client.database
         ?.getUnimportantRoomEventStatesForRoom(
-            client.importantStateEvents.toList(), this);
+        client.importantStateEvents.toList(), this);
 
     if (allStates != null) {
       for (final state in allStates) {
@@ -157,7 +161,8 @@ class Room {
 
     if (stateKey == null) {
       Logs().w(
-        'Tried to set a non state event with type "${state.type}" as state event for a room',
+        'Tried to set a non state event with type "${state
+            .type}" as state event for a room',
       );
       assert(stateKey != null);
       return;
@@ -180,7 +185,7 @@ class Room {
   /// If there is a new session key received, this will be triggered with
   /// the session ID.
   final CachedStreamController<String> onSessionKeyReceived =
-      CachedStreamController();
+  CachedStreamController();
 
   /// The name of the room if set by a participant.
   String get name {
@@ -217,10 +222,10 @@ class Room {
     if (heroes == null) return [];
 
     return await Future.wait(heroes.map((hero) async =>
-        (await requestUser(
-          hero,
-          ignoreErrors: true,
-        )) ??
+    (await requestUser(
+      hero,
+      ignoreErrors: true,
+    )) ??
         User(hero, room: this)));
   }
 
@@ -248,10 +253,11 @@ class Room {
     if (heroes.isNotEmpty) {
       final result = heroes
           .where(
-            // removing oneself from the hero list
+        // removing oneself from the hero list
             (hero) => hero.isNotEmpty && hero != client.userID,
-          )
-          .map((hero) => unsafeGetUserFromMemoryOrFallback(hero)
+      )
+          .map((hero) =>
+          unsafeGetUserFromMemoryOrFallback(hero)
               .calcDisplayname(i18n: i18n))
           .join(', ');
       if (isAbandonedDMRoom) {
@@ -293,7 +299,7 @@ class Room {
   Uri? get avatar {
     // Check content of `m.room.avatar`
     final avatarUrl =
-        getState(EventTypes.RoomAvatar)?.content.tryGet<String>('url');
+    getState(EventTypes.RoomAvatar)?.content.tryGet<String>('url');
     if (avatarUrl != null) {
       return Uri.tryParse(avatarUrl);
     }
@@ -378,9 +384,9 @@ class Room {
     final typingMxid = ephemerals['m.typing']?.content['user_ids'];
     return (typingMxid is List)
         ? typingMxid
-            .cast<String>()
-            .map(unsafeGetUserFromMemoryOrFallback)
-            .toList()
+        .cast<String>()
+        .map(unsafeGetUserFromMemoryOrFallback)
+        .toList()
         : [];
   }
 
@@ -397,7 +403,8 @@ class Room {
     Map<String, BasicRoomEvent>? roomAccountData,
     RoomSummary? summary,
     this.lastEvent,
-  })  : roomAccountData = roomAccountData ?? <String, BasicRoomEvent>{},
+  })
+      : roomAccountData = roomAccountData ?? <String, BasicRoomEvent>{},
         summary = summary ??
             RoomSummary.fromJson({
               'm.joined_member_count': 0,
@@ -433,7 +440,8 @@ class Room {
 
   /// Call the Matrix API to change the name of this room. Returns the event ID of the
   /// new m.room.name event.
-  Future<String> setName(String newName) => client.setRoomStateWithKey(
+  Future<String> setName(String newName) =>
+      client.setRoomStateWithKey(
         id,
         EventTypes.RoomName,
         '',
@@ -441,7 +449,8 @@ class Room {
       );
 
   /// Call the Matrix API to change the topic of this room.
-  Future<String> setDescription(String newName) => client.setRoomStateWithKey(
+  Future<String> setDescription(String newName) =>
+      client.setRoomStateWithKey(
         id,
         EventTypes.RoomTopic,
         '',
@@ -449,7 +458,8 @@ class Room {
       );
 
   /// Add a tag to the room.
-  Future<void> addTag(String tag, {double? order}) => client.setRoomTag(
+  Future<void> addTag(String tag, {double? order}) =>
+      client.setRoomTag(
         client.userID!,
         id,
         tag,
@@ -457,7 +467,8 @@ class Room {
       );
 
   /// Removes a tag from the room.
-  Future<void> removeTag(String tag) => client.deleteRoomTag(
+  Future<void> removeTag(String tag) =>
+      client.deleteRoomTag(
         client.userID!,
         id,
         tag,
@@ -470,7 +481,8 @@ class Room {
     if (o is Map<String, dynamic>) {
       return Tag(
           order: o.tryGet<num>('order', TryGet.silent)?.toDouble(),
-          additionalProperties: Map.from(o)..remove('order'));
+          additionalProperties: Map.from(o)
+            ..remove('order'));
     }
     return Tag();
   }
@@ -481,7 +493,7 @@ class Room {
 
     if (tags is Map) {
       final parsedTags =
-          tags.map((k, v) => MapEntry<String, Tag>(k, _tryTagFromJson(v)));
+      tags.map((k, v) => MapEntry<String, Tag>(k, _tryTagFromJson(v)));
       parsedTags.removeWhere((k, v) => !TagType.isValid(k));
       return parsedTags;
     }
@@ -490,8 +502,9 @@ class Room {
   }
 
   bool get markedUnread {
-    return MarkedUnread.fromJson(
-            roomAccountData[EventType.markedUnread]?.content ?? {})
+    return MarkedUnread
+        .fromJson(
+        roomAccountData[EventType.markedUnread]?.content ?? {})
         .unread;
   }
 
@@ -520,9 +533,10 @@ class Room {
     return readAtMilliseconds < lastEvent.originServerTs.millisecondsSinceEpoch;
   }
 
-  LatestReceiptState get receiptState => LatestReceiptState.fromJson(
-      roomAccountData[LatestReceiptState.eventType]?.content ??
-          <String, dynamic>{});
+  LatestReceiptState get receiptState =>
+      LatestReceiptState.fromJson(
+          roomAccountData[LatestReceiptState.eventType]?.content ??
+              <String, dynamic>{});
 
   /// Returns true if this room is unread. To check if there are new messages
   /// in muted rooms, use [hasNewMessages].
@@ -590,32 +604,38 @@ class Room {
       );
 
   /// returns the resolved mxid for a mention string, or null if none found
-  String? getMention(String mention) => getParticipants()
-      .firstWhereOrNull((u) => u.mentionFragments.contains(mention))
-      ?.id;
+  String? getMention(String mention) =>
+      getParticipants()
+          .firstWhereOrNull((u) => u.mentionFragments.contains(mention))
+          ?.id;
 
   /// Sends a normal text message to this room. Returns the event ID generated
   /// by the server for this message.
   Future<String?> sendTextEvent(String message,
       {String? txid,
-      Event? inReplyTo,
-      String? editEventId,
-      bool parseMarkdown = true,
-      bool parseCommands = true,
-      String msgtype = MessageTypes.Text,
-      String? threadRootEventId,
-      String? threadLastEventId}) {
+        Event? inReplyTo,
+        String? editEventId,
+        bool parseMarkdown = true,
+        bool parseCommands = true,
+        String msgtype = MessageTypes.Text,
+        String? threadRootEventId,
+        String? threadLastEventId,
+        bool isWebSearchEnable = false,
+      }) {
     if (parseCommands) {
       return client.parseAndRunCommand(this, message,
-          inReplyTo: inReplyTo,
-          editEventId: editEventId,
-          txid: txid,
-          threadRootEventId: threadRootEventId,
-          threadLastEventId: threadLastEventId);
+        inReplyTo: inReplyTo,
+        editEventId: editEventId,
+        txid: txid,
+        threadRootEventId: threadRootEventId,
+        threadLastEventId: threadLastEventId,
+        isWebSearchEnable: isWebSearchEnable,
+      );
     }
     final event = <String, dynamic>{
       'msgtype': msgtype,
       'body': message,
+      'webSearch': isWebSearchEnable,
     };
     if (parseMarkdown) {
       final html = markdown(event['body'],
@@ -675,8 +695,7 @@ class Room {
   /// Set [shrinkImageMaxDimension] to for example `1600` if you want to shrink
   /// your image before sending. This is ignored if the File is not a
   /// [MatrixImageFile].
-  Future<String?> sendFileEvent(
-    MatrixFile file, {
+  Future<String?> sendFileEvent(MatrixFile file, {
     String? txid,
     Event? inReplyTo,
     String? editEventId,
@@ -685,6 +704,7 @@ class Room {
     Map<String, dynamic>? extraContent,
     String? threadRootEventId,
     String? threadLastEventId,
+    bool isWebSearchEnable = false,
   }) async {
     txid ??= client.generateUniqueTransactionId();
     sendingFilePlaceholders[txid] = file;
@@ -733,7 +753,7 @@ class Room {
     if (file is MatrixImageFile &&
         (thumbnail == null || shrinkImageMaxDimension != null)) {
       syncUpdate.rooms!.join!.values.first.timeline!.events!.first
-              .unsigned![fileSendingStatusKey] =
+          .unsigned![fileSendingStatusKey] =
           FileSendingStatus.generatingThumbnail.name;
       await _handleFakeSync(syncUpdate);
       thumbnail ??= await file.generateThumbnail(
@@ -803,10 +823,10 @@ class Room {
         );
         thumbnailUploadResp = uploadThumbnail != null
             ? await client.uploadContent(
-                uploadThumbnail.bytes,
-                filename: uploadThumbnail.name,
-                contentType: uploadThumbnail.mimeType,
-              )
+          uploadThumbnail.bytes,
+          filename: uploadThumbnail.name,
+          contentType: uploadThumbnail.mimeType,
+        )
             : null;
       } on MatrixException catch (_) {
         syncUpdate.rooms!.join!.values.first.timeline!.events!.first
@@ -830,6 +850,7 @@ class Room {
       'msgtype': file.msgType,
       'body': file.name,
       'filename': file.name,
+      'webSearch': isWebSearchEnable,
       if (encryptedFile == null) 'url': uploadResp.toString(),
       if (encryptedFile != null)
         'file': {
@@ -895,29 +916,28 @@ class Room {
   Future<EncryptionHealthState> calcEncryptionHealthState() async {
     final users = await requestParticipants();
     users.removeWhere((u) =>
-        !{Membership.invite, Membership.join}.contains(u.membership) ||
+    !{Membership.invite, Membership.join}.contains(u.membership) ||
         !client.userDeviceKeys.containsKey(u.id));
 
     if (users.any((u) =>
-        client.userDeviceKeys[u.id]!.verified != UserVerifiedStatus.verified)) {
+    client.userDeviceKeys[u.id]!.verified != UserVerifiedStatus.verified)) {
       return EncryptionHealthState.unverifiedDevices;
     }
 
     return EncryptionHealthState.allVerified;
   }
 
-  Future<String?> _sendContent(
-    String type,
-    Map<String, dynamic> content, {
-    String? txid,
-  }) async {
+  Future<String?> _sendContent(String type,
+      Map<String, dynamic> content, {
+        String? txid,
+      }) async {
     txid ??= client.generateUniqueTransactionId();
 
     final mustEncrypt = encrypted && client.encryptionEnabled;
 
     final sendMessageContent = mustEncrypt
         ? await client.encryption!
-            .encryptGroupMessagePayload(id, content, type: type)
+        .encryptGroupMessagePayload(id, content, type: type)
         : content;
 
     return await client.sendMessage(
@@ -952,8 +972,7 @@ class Room {
   /// Sends an event to this room with this json as a content. Returns the
   /// event ID generated from the server.
   /// It uses list of completer to make sure events are sending in a row.
-  Future<String?> sendEvent(
-    Map<String, dynamic> content, {
+  Future<String?> sendEvent(Map<String, dynamic> content, {
     String type = EventTypes.Message,
     String? txid,
     Event? inReplyTo,
@@ -976,22 +995,27 @@ class Room {
       content['format'] = 'org.matrix.custom.html';
       // be sure that we strip any previous reply fallbacks
       final replyHtml = (inReplyTo.formattedText.isNotEmpty
-              ? inReplyTo.formattedText
-              : htmlEscape.convert(inReplyTo.body).replaceAll('\n', '<br>'))
+          ? inReplyTo.formattedText
+          : htmlEscape.convert(inReplyTo.body).replaceAll('\n', '<br>'))
           .replaceAll(
-              RegExp(r'<mx-reply>.*</mx-reply>',
-                  caseSensitive: false, multiLine: false, dotAll: true),
-              '');
+          RegExp(r'<mx-reply>.*</mx-reply>',
+              caseSensitive: false, multiLine: false, dotAll: true),
+          '');
       final repliedHtml = content.tryGet<String>('formatted_body') ??
           htmlEscape
               .convert(content.tryGet<String>('body') ?? '')
               .replaceAll('\n', '<br>');
       content['formatted_body'] =
-          '<mx-reply><blockquote><a href="https://matrix.to/#/${inReplyTo.roomId!}/${inReplyTo.eventId}">In reply to</a> <a href="https://matrix.to/#/${inReplyTo.senderId}">${inReplyTo.senderId}</a><br>$replyHtml</blockquote></mx-reply>$repliedHtml';
+      '<mx-reply><blockquote><a href="https://matrix.to/#/${inReplyTo
+          .roomId!}/${inReplyTo
+          .eventId}">In reply to</a> <a href="https://matrix.to/#/${inReplyTo
+          .senderId}">${inReplyTo
+          .senderId}</a><br>$replyHtml</blockquote></mx-reply>$repliedHtml';
       // We escape all @room-mentions here to prevent accidental room pings when an admin
       // replies to a message containing that!
       content['body'] =
-          '${replyText.replaceAll('@room', '@\u200broom')}\n\n${content.tryGet<String>('body') ?? ''}';
+      '${replyText.replaceAll('@room', '@\u200broom')}\n\n${content.tryGet<
+          String>('body') ?? ''}';
       content['m.relates_to'] = {
         'm.in_reply_to': {
           'event_id': inReplyTo.eventId,
@@ -1008,12 +1032,13 @@ class Room {
           'm.in_reply_to': {
             'event_id': inReplyTo.eventId,
           },
-        } else ...{
-          if (threadLastEventId != null)
-            'm.in_reply_to': {
-              'event_id': threadLastEventId,
-            },
-        }
+        } else
+          ...{
+            if (threadLastEventId != null)
+              'm.in_reply_to': {
+                'event_id': threadLastEventId,
+              },
+          }
       };
     }
 
@@ -1081,7 +1106,8 @@ class Room {
                 .add(Duration(milliseconds: e.retryAfterMs!))
                 .isAfter(timeoutDate)) {
           Logs().w(
-              'Ratelimited while sending message, waiting for ${e.retryAfterMs}ms');
+              'Ratelimited while sending message, waiting for ${e
+                  .retryAfterMs}ms');
           await Future.delayed(Duration(milliseconds: e.retryAfterMs!));
         } else if (e is MatrixException ||
             e is EventTooLarge ||
@@ -1205,8 +1231,7 @@ class Room {
   }
 
   /// Call the Matrix API to invite a user to this room.
-  Future<void> invite(
-    String userID, {
+  Future<void> invite(String userID, {
     String? reason,
   }) =>
       client.inviteUser(
@@ -1219,10 +1244,9 @@ class Room {
   /// be received maximum. When the request is answered, [onHistoryReceived] will be triggered **before**
   /// the historical events will be published in the onEvent stream.
   /// Returns the actual count of received timeline events.
-  Future<int> requestHistory(
-      {int historyCount = defaultHistoryCount,
-      void Function()? onHistoryReceived,
-      direction = Direction.b}) async {
+  Future<int> requestHistory({int historyCount = defaultHistoryCount,
+    void Function()? onHistoryReceived,
+    direction = Direction.b}) async {
     final prev_batch = this.prev_batch;
 
     final storeInDatabase = !isArchived;
@@ -1250,35 +1274,35 @@ class Room {
             rooms: RoomsUpdate(
                 join: membership == Membership.join
                     ? {
-                        id: JoinedRoomUpdate(
-                          state: resp.state,
-                          timeline: TimelineUpdate(
-                            limited: false,
-                            events: direction == Direction.b
-                                ? resp.chunk
-                                : resp.chunk.reversed.toList(),
-                            prevBatch: direction == Direction.b
-                                ? resp.end
-                                : resp.start,
-                          ),
-                        )
-                      }
+                  id: JoinedRoomUpdate(
+                    state: resp.state,
+                    timeline: TimelineUpdate(
+                      limited: false,
+                      events: direction == Direction.b
+                          ? resp.chunk
+                          : resp.chunk.reversed.toList(),
+                      prevBatch: direction == Direction.b
+                          ? resp.end
+                          : resp.start,
+                    ),
+                  )
+                }
                     : null,
                 leave: membership != Membership.join
                     ? {
-                        id: LeftRoomUpdate(
-                          state: resp.state,
-                          timeline: TimelineUpdate(
-                            limited: false,
-                            events: direction == Direction.b
-                                ? resp.chunk
-                                : resp.chunk.reversed.toList(),
-                            prevBatch: direction == Direction.b
-                                ? resp.end
-                                : resp.start,
-                          ),
-                        ),
-                      }
+                  id: LeftRoomUpdate(
+                    state: resp.state,
+                    timeline: TimelineUpdate(
+                      limited: false,
+                      events: direction == Direction.b
+                          ? resp.chunk
+                          : resp.chunk.reversed.toList(),
+                      prevBatch: direction == Direction.b
+                          ? resp.end
+                          : resp.start,
+                    ),
+                  ),
+                }
                     : null),
           ),
           direction: Direction.b);
@@ -1349,7 +1373,7 @@ class Room {
 
   bool get isFederated =>
       getState(EventTypes.RoomCreate)?.content.tryGet<bool>('m.federate') ??
-      true;
+          true;
 
   /// Sets the position of the read marker for a given room, and optionally the
   /// read receipt's location.
@@ -1370,8 +1394,8 @@ class Room {
   Future<TimelineChunk?> getEventContext(String eventId) async {
     final resp = await client.getEventContext(id, eventId,
         limit: Room.defaultHistoryCount
-        // filter: jsonEncode(StateFilter(lazyLoadMembers: true).toJson()),
-        );
+      // filter: jsonEncode(StateFilter(lazyLoadMembers: true).toJson()),
+    );
 
     final events = [
       if (resp.eventsAfter != null) ...resp.eventsAfter!.reversed,
@@ -1422,22 +1446,21 @@ class Room {
   /// [onChange], [onRemove], [onInsert] and the [onHistoryReceived] callbacks.
   /// This method can also retrieve the timeline at a specific point by setting
   /// the [eventContextId]
-  Future<Timeline> getTimeline(
-      {void Function(int index)? onChange,
-      void Function(int index)? onRemove,
-      void Function(int insertID)? onInsert,
-      void Function()? onNewEvent,
-      void Function()? onUpdate,
-      String? eventContextId}) async {
+  Future<Timeline> getTimeline({void Function(int index)? onChange,
+    void Function(int index)? onRemove,
+    void Function(int insertID)? onInsert,
+    void Function()? onNewEvent,
+    void Function()? onUpdate,
+    String? eventContextId}) async {
     await postLoad();
 
     List<Event> events;
 
     if (!isArchived) {
       events = await client.database?.getEventList(
-            this,
-            limit: defaultHistoryCount,
-          ) ??
+        this,
+        limit: defaultHistoryCount,
+      ) ??
           <Event>[];
     } else {
       final archive = client.getArchiveRoomFromCache(id);
@@ -1523,12 +1546,11 @@ class Room {
   /// List `membershipFilter` defines with what membership do you want the
   /// participants, default set to
   /// [[Membership.join, Membership.invite, Membership.knock]]
-  List<User> getParticipants(
-      [List<Membership> membershipFilter = const [
-        Membership.join,
-        Membership.invite,
-        Membership.knock,
-      ]]) {
+  List<User> getParticipants([List<Membership> membershipFilter = const [
+    Membership.join,
+    Membership.invite,
+    Membership.knock,
+  ]]) {
     final members = states[EventTypes.RoomMember];
     if (members != null) {
       return members.entries
@@ -1553,8 +1575,8 @@ class Room {
         Membership.invite,
         Membership.knock,
       ],
-      bool suppressWarning = false,
-      bool cache = true]) async {
+        bool suppressWarning = false,
+        bool cache = true]) async {
     if (!participantListComplete || partial) {
       // we aren't fully loaded, maybe the users are in the database
       // We always need to check the database in the partial case, since state
@@ -1583,8 +1605,11 @@ class Room {
 
     final matrixEvents = await client.getMembersByRoom(id);
     final users = matrixEvents
-            ?.map((e) => Event.fromMatrixEvent(e, this).asUser)
-            .toList() ??
+        ?.map((e) =>
+    Event
+        .fromMatrixEvent(e, this)
+        .asUser)
+        .toList() ??
         [];
 
     if (cache) {
@@ -1601,7 +1626,9 @@ class Room {
   bool get participantListComplete {
     final knownParticipants = getParticipants();
     final joinedCount =
-        knownParticipants.where((u) => u.membership == Membership.join).length;
+        knownParticipants
+            .where((u) => u.membership == Membership.join)
+            .length;
     final invitedCount = knownParticipants
         .where((u) => u.membership == Membership.invite)
         .length;
@@ -1636,8 +1663,7 @@ class Room {
   }
 
   // Internal helper to implement requestUser
-  Future<User?> _requestSingleParticipantViaState(
-    String mxID, {
+  Future<User?> _requestSingleParticipantViaState(String mxID, {
     required bool ignoreErrors,
   }) async {
     try {
@@ -1687,8 +1713,7 @@ class Room {
   }
 
   // Internal helper to implement requestUser
-  Future<User?> _requestUser(
-    String mxID, {
+  Future<User?> _requestUser(String mxID, {
     required bool ignoreErrors,
     required bool requestState,
     required bool requestProfile,
@@ -1714,11 +1739,11 @@ class Room {
     // If the user isn't found or they have left and no displayname set anymore, request their profile from the server
     if (requestProfile) {
       if (foundUser
-          case null ||
-              User(
-                membership: Membership.ban || Membership.leave,
-                displayName: null
-              )) {
+      case null ||
+      User(
+      membership: Membership.ban || Membership.leave,
+      displayName: null
+      )) {
         try {
           final profile = await client.getUserProfile(mxID);
           foundUser = User(
@@ -1742,7 +1767,7 @@ class Room {
     if (foundUser == null) return null;
     // make sure we didn't actually store anything by the time we did those requests
     final userFromCurrentState =
-        getState(EventTypes.RoomMember, mxID)?.asUser(this);
+    getState(EventTypes.RoomMember, mxID)?.asUser(this);
 
     // Set user in the local state if the state changed.
     // If we set the state unconditionally, we might end up with a client calling this over and over thinking the user changed.
@@ -1758,10 +1783,10 @@ class Room {
 
   final Map<
       ({
-        String mxID,
-        bool ignoreErrors,
-        bool requestState,
-        bool requestProfile,
+      String mxID,
+      bool ignoreErrors,
+      bool requestState,
+      bool requestProfile,
       }),
       AsyncCache<User?>> _inflightUserRequests = {};
 
@@ -1770,8 +1795,7 @@ class Room {
   /// the displayname and avatar from the server if [requestState] is true.
   /// If that fails, it falls back to requesting the global profile if
   /// [requestProfile] is true.
-  Future<User?> requestUser(
-    String mxID, {
+  Future<User?> requestUser(String mxID, {
     bool ignoreErrors = false,
     bool requestState = true,
     bool requestProfile = true,
@@ -1779,16 +1803,17 @@ class Room {
     assert(mxID.isValidMatrixId);
 
     final parameters = (
-      mxID: mxID,
-      ignoreErrors: ignoreErrors,
-      requestState: requestState,
-      requestProfile: requestProfile,
+    mxID: mxID,
+    ignoreErrors: ignoreErrors,
+    requestState: requestState,
+    requestProfile: requestProfile,
     );
 
     final cache = _inflightUserRequests[parameters] ??= AsyncCache.ephemeral();
 
     try {
-      final user = await cache.fetch(() => _requestUser(
+      final user = await cache.fetch(() =>
+          _requestUser(
             mxID,
             ignoreErrors: ignoreErrors,
             requestState: requestState,
@@ -1836,12 +1861,12 @@ class Room {
     final powerLevelMap = getState(EventTypes.RoomPowerLevels)?.content;
 
     final userSpecificPowerLevel =
-        powerLevelMap?.tryGetMap<String, Object?>('users')?.tryGet<int>(userId);
+    powerLevelMap?.tryGetMap<String, Object?>('users')?.tryGet<int>(userId);
 
     final defaultUserPowerLevel = powerLevelMap?.tryGet<int>('users_default');
 
     final fallbackPowerLevel =
-        getState(EventTypes.RoomCreate)?.senderId == userId ? 100 : 0;
+    getState(EventTypes.RoomCreate)?.senderId == userId ? 100 : 0;
 
     return userSpecificPowerLevel ??
         defaultUserPowerLevel ??
@@ -1855,7 +1880,7 @@ class Room {
   @Deprecated('Use `getPowerLevelByUserId(String userId)` instead')
   Map<String, int>? get powerLevels {
     final powerLevelState =
-        getState(EventTypes.RoomPowerLevels)?.content['users'];
+    getState(EventTypes.RoomPowerLevels)?.content['users'];
     return (powerLevelState is Map<String, int>) ? powerLevelState : null;
   }
 
@@ -1879,7 +1904,7 @@ class Room {
   bool get canBan =>
       (getState(EventTypes.RoomPowerLevels)?.content.tryGet<int>('ban') ??
           50) <=
-      ownPowerLevel;
+          ownPowerLevel;
 
   /// returns if user can change a particular state event by comparing `ownPowerLevel`
   /// with possible overrides in `events`, if not present compares `ownPowerLevel`
@@ -1897,8 +1922,8 @@ class Room {
     final powerLevelMap = getState(EventTypes.RoomPowerLevels)?.content;
     if (powerLevelMap == null) return 0;
     return powerLevelMap
-            .tryGetMap<String, Object?>('events')
-            ?.tryGet<int>(action) ??
+        .tryGetMap<String, Object?>('events')
+        ?.tryGet<int>(action) ??
         powerLevelMap.tryGet<int>('state_default') ??
         50;
   }
@@ -1957,28 +1982,28 @@ class Room {
   bool get canInvite =>
       (getState(EventTypes.RoomPowerLevels)?.content.tryGet<int>('invite') ??
           0) <=
-      ownPowerLevel;
+          ownPowerLevel;
 
   /// The level required to kick a user.
   bool get canKick =>
       (getState(EventTypes.RoomPowerLevels)?.content.tryGet<int>('kick') ??
           50) <=
-      ownPowerLevel;
+          ownPowerLevel;
 
   /// The level required to redact an event.
   bool get canRedact =>
       (getState(EventTypes.RoomPowerLevels)?.content.tryGet<int>('redact') ??
           50) <=
-      ownPowerLevel;
+          ownPowerLevel;
 
   ///  	The default level required to send state events. Can be overridden by the events key.
   bool get canSendDefaultStates {
     final powerLevelsMap = getState(EventTypes.RoomPowerLevels)?.content;
     if (powerLevelsMap == null) return 0 <= ownPowerLevel;
     return (getState(EventTypes.RoomPowerLevels)
-                ?.content
-                .tryGet<int>('state_default') ??
-            50) <=
+        ?.content
+        .tryGet<int>('state_default') ??
+        50) <=
         ownPowerLevel;
   }
 
@@ -1991,8 +2016,8 @@ class Room {
     final powerLevelsMap = getState(EventTypes.RoomPowerLevels)?.content;
 
     final pl = powerLevelsMap
-            ?.tryGetMap<String, Object?>('events')
-            ?.tryGet<int>(eventType) ??
+        ?.tryGetMap<String, Object?>('events')
+        ?.tryGet<int>(eventType) ??
         powerLevelsMap?.tryGet<int>('events_default') ??
         0;
 
@@ -2003,9 +2028,9 @@ class Room {
   bool canSendNotification(String userid, {String notificationType = 'room'}) {
     final userLevel = getPowerLevelByUserId(userid);
     final notificationLevel = getState(EventTypes.RoomPowerLevels)
-            ?.content
-            .tryGetMap<String, Object?>('notifications')
-            ?.tryGet<int>(notificationType) ??
+        ?.content
+        .tryGetMap<String, Object?>('notifications')
+        ?.tryGet<int>(notificationType) ??
         50;
 
     return userLevel >= notificationLevel;
@@ -2015,7 +2040,7 @@ class Room {
   /// the account_data.
   PushRuleState get pushRuleState {
     final globalPushRules =
-        client.accountData['m.push_rules']?.content['global'];
+    client.accountData['m.push_rules']?.content['global'];
     if (globalPushRules is! Map) {
       return PushRuleState.notify;
     }
@@ -2051,7 +2076,7 @@ class Room {
     if (newState == pushRuleState) return;
     dynamic resp;
     switch (newState) {
-      // All push notifications should be sent to the user
+    // All push notifications should be sent to the user
       case PushRuleState.notify:
         if (pushRuleState == PushRuleState.dontNotify) {
           await client.deletePushRule('global', PushRuleKind.override, id);
@@ -2059,7 +2084,7 @@ class Room {
           await client.deletePushRule('global', PushRuleKind.room, id);
         }
         break;
-      // Only when someone mentions the user, a push notification should be sent
+    // Only when someone mentions the user, a push notification should be sent
       case PushRuleState.mentionsOnly:
         if (pushRuleState == PushRuleState.dontNotify) {
           await client.deletePushRule('global', PushRuleKind.override, id);
@@ -2078,7 +2103,7 @@ class Room {
           );
         }
         break;
-      // No push notification should be ever sent for this room.
+    // No push notification should be ever sent for this room.
       case PushRuleState.dontNotify:
         if (pushRuleState == PushRuleState.mentionsOnly) {
           await client.deletePushRule('global', PushRuleKind.room, id);
@@ -2101,7 +2126,9 @@ class Room {
       {String? reason, String? txid}) async {
     // Create new transaction id
     String messageID;
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final now = DateTime
+        .now()
+        .millisecondsSinceEpoch;
     if (txid == null) {
       messageID = 'msg$now';
     } else {
@@ -2129,7 +2156,7 @@ class Room {
   /// keywords which are not implemented.
   JoinRules? get joinRules {
     final joinRulesString =
-        getState(EventTypes.RoomJoinRules)?.content.tryGet<String>('join_rule');
+    getState(EventTypes.RoomJoinRules)?.content.tryGet<String>('join_rule');
     return JoinRules.values
         .singleWhereOrNull((element) => element.text == joinRulesString);
   }
@@ -2183,7 +2210,7 @@ class Room {
         ?.content
         .tryGet<String>('history_visibility');
     return HistoryVisibility.values.singleWhereOrNull(
-        (element) => element.text == historyVisibilityString);
+            (element) => element.text == historyVisibilityString);
   }
 
   /// Changes the history visibility. You should check first if the user is able to change it.
@@ -2273,7 +2300,7 @@ class Room {
   /// `m.space`.
   bool get isSpace =>
       getState(EventTypes.RoomCreate)?.content.tryGet<String>('type') ==
-      RoomCreationTypes.mSpace;
+          RoomCreationTypes.mSpace;
 
   /// The parents of this room. Currently this SDK doesn't yet set the canonical
   /// flag and is not checking if this room is in fact a child of this space.
@@ -2285,27 +2312,28 @@ class Room {
           .map((state) => SpaceParent.fromState(state))
           .where((child) => child.via.isNotEmpty)
           .toList() ??
-      [];
+          [];
 
   /// List all children of this space. Children without a `via` domain will be
   /// ignored.
   /// Children are sorted by the `order` while those without this field will be
   /// sorted at the end of the list.
-  List<SpaceChild> get spaceChildren => !isSpace
-      ? throw Exception('Room is not a space!')
-      : (states[EventTypes.SpaceChild]
-              ?.values
-              .map((state) => SpaceChild.fromState(state))
-              .where((child) => child.via.isNotEmpty)
-              .toList() ??
+  List<SpaceChild> get spaceChildren =>
+      !isSpace
+          ? throw Exception('Room is not a space!')
+          : (states[EventTypes.SpaceChild]
+          ?.values
+          .map((state) => SpaceChild.fromState(state))
+          .where((child) => child.via.isNotEmpty)
+          .toList() ??
           [])
-    ..sort((a, b) => a.order.isEmpty || b.order.isEmpty
-        ? b.order.compareTo(a.order)
-        : a.order.compareTo(b.order));
+        ..sort((a, b) =>
+        a.order.isEmpty || b.order.isEmpty
+            ? b.order.compareTo(a.order)
+            : a.order.compareTo(b.order));
 
   /// Adds or edits a child of this space.
-  Future<void> setSpaceChild(
-    String roomId, {
+  Future<void> setSpaceChild(String roomId, {
     List<String>? via,
     String? order,
     bool? suggested,
@@ -2338,7 +2366,7 @@ class Room {
     if (currentPowerLevelsMap != null) {
       // just for weird rooms
       temp.removeWhere((user) =>
-          user.powerLevel < getDefaultPowerLevel(currentPowerLevelsMap));
+      user.powerLevel < getDefaultPowerLevel(currentPowerLevelsMap));
     }
 
     if (temp.isNotEmpty) {
@@ -2358,8 +2386,9 @@ class Room {
         }
       }
     }
-    final sortedServers = Map.fromEntries(servers.entries.toList()
-          ..sort((e1, e2) => e2.value.compareTo(e1.value)))
+    final sortedServers = Map
+        .fromEntries(servers.entries.toList()
+      ..sort((e1, e2) => e2.value.compareTo(e1.value)))
         .keys
         .take(3);
     for (final server in sortedServers) {
@@ -2380,9 +2409,10 @@ class Room {
   }
 
   /// Remove a child from this space by setting the `via` to an empty list.
-  Future<void> removeSpaceChild(String roomId) => !isSpace
-      ? throw Exception('Room is not a space!')
-      : setSpaceChild(roomId, via: const []);
+  Future<void> removeSpaceChild(String roomId) =>
+      !isSpace
+          ? throw Exception('Room is not a space!')
+          : setSpaceChild(roomId, via: const []);
 
   @override
   bool operator ==(Object other) => (other is Room && other.id == id);
