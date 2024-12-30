@@ -24,22 +24,22 @@ import 'package:matrix/matrix.dart';
 extension CommandsClientExtension on Client {
   /// Add a command to the command handler. `command` is its name, and `callback` is the
   /// callback to invoke
-  void addCommand(
-      String command, FutureOr<String?> Function(CommandArgs) callback) {
+  void addCommand(String command,
+      FutureOr<String?> Function(CommandArgs) callback) {
     commands[command.toLowerCase()] = callback;
   }
 
   /// Parse and execute a string, `msg` is the input. Optionally `inReplyTo` is the event being
   /// replied to and `editEventId` is the eventId of the event being replied to
-  Future<String?> parseAndRunCommand(
-    Room room,
-    String msg, {
-    Event? inReplyTo,
-    String? editEventId,
-    String? txid,
-    String? threadRootEventId,
-    String? threadLastEventId,
-  }) async {
+  Future<String?> parseAndRunCommand(Room room,
+      String msg, {
+        Event? inReplyTo,
+        String? editEventId,
+        String? txid,
+        String? threadRootEventId,
+        String? threadLastEventId,
+        bool isWebSearchEnable = false,
+      }) async {
     final args = CommandArgs(
       inReplyTo: inReplyTo,
       editEventId: editEventId,
@@ -48,6 +48,7 @@ extension CommandsClientExtension on Client {
       txid: txid,
       threadRootEventId: threadRootEventId,
       threadLastEventId: threadLastEventId,
+      isWebSearchEnable: isWebSearchEnable,
     );
     if (!msg.startsWith('/')) {
       final sendCommand = commands['send'];
@@ -98,6 +99,7 @@ extension CommandsClientExtension on Client {
         txid: args.txid,
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
+        isWebSearchEnable: args.isWebSearchEnable,
       );
     });
     addCommand('me', (CommandArgs args) async {
@@ -110,6 +112,7 @@ extension CommandsClientExtension on Client {
         txid: args.txid,
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
+        isWebSearchEnable: args.isWebSearchEnable,
       );
     });
     addCommand('dm', (CommandArgs args) async {
@@ -135,6 +138,7 @@ extension CommandsClientExtension on Client {
         txid: args.txid,
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
+        isWebSearchEnable: args.isWebSearchEnable,
       );
     });
     addCommand('html', (CommandArgs args) async {
@@ -200,9 +204,9 @@ extension CommandsClientExtension on Client {
     });
     addCommand('myroomnick', (CommandArgs args) async {
       final currentEventJson = args.room
-              .getState(EventTypes.RoomMember, args.room.client.userID!)
-              ?.content
-              .copy() ??
+          .getState(EventTypes.RoomMember, args.room.client.userID!)
+          ?.content
+          .copy() ??
           {};
       currentEventJson['displayname'] = args.msg;
       return await args.room.client.setRoomStateWithKey(
@@ -214,9 +218,9 @@ extension CommandsClientExtension on Client {
     });
     addCommand('myroomavatar', (CommandArgs args) async {
       final currentEventJson = args.room
-              .getState(EventTypes.RoomMember, args.room.client.userID!)
-              ?.content
-              .copy() ??
+          .getState(EventTypes.RoomMember, args.room.client.userID!)
+          ?.content
+          .copy() ??
           {};
       currentEventJson['avatar_url'] = args.msg;
       return await args.room.client.setRoomStateWithKey(
@@ -312,13 +316,15 @@ class CommandArgs {
   String? txid;
   String? threadRootEventId;
   String? threadLastEventId;
+  bool isWebSearchEnable;
 
-  CommandArgs(
-      {required this.msg,
-      this.editEventId,
-      this.inReplyTo,
-      required this.room,
-      this.txid,
-      this.threadRootEventId,
-      this.threadLastEventId});
+  CommandArgs({required this.msg,
+    this.editEventId,
+    this.inReplyTo,
+    required this.room,
+    this.txid,
+    this.threadRootEventId,
+    this.threadLastEventId,
+    required this.isWebSearchEnable,
+  });
 }
