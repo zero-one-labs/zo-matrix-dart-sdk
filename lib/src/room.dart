@@ -613,31 +613,37 @@ class Room {
 
   /// Sends a normal text message to this room. Returns the event ID generated
   /// by the server for this message.
-  Future<String?> sendTextEvent(String message,
-      {String? txid,
-        Event? inReplyTo,
-        String? editEventId,
-        bool parseMarkdown = true,
-        bool parseCommands = true,
-        String msgtype = MessageTypes.Text,
-        String? threadRootEventId,
-        String? threadLastEventId,
-        bool isWebSearchEnable = false,
-      }) {
+  Future<String?> sendTextEvent(
+    String message, {
+    String? txid,
+    Event? inReplyTo,
+    String? editEventId,
+    bool parseMarkdown = true,
+    bool parseCommands = true,
+    String msgtype = MessageTypes.Text,
+    String? threadRootEventId,
+    String? threadLastEventId,
+    bool isWebSearchEnable = false,
+    bool isImageModeEnable = false,
+  }) {
     if (parseCommands) {
-      return client.parseAndRunCommand(this, message,
+      return client.parseAndRunCommand(
+        this,
+        message,
         inReplyTo: inReplyTo,
         editEventId: editEventId,
         txid: txid,
         threadRootEventId: threadRootEventId,
         threadLastEventId: threadLastEventId,
         isWebSearchEnable: isWebSearchEnable,
+        isImageModeEnable: isImageModeEnable,
       );
     }
     final event = <String, dynamic>{
       'msgtype': msgtype,
       'body': message,
       'webSearch': isWebSearchEnable,
+      'imageMode': isImageModeEnable,
     };
     if (parseMarkdown) {
       final html = markdown(
@@ -714,6 +720,7 @@ class Room {
     String? threadRootEventId,
     String? threadLastEventId,
     bool isWebSearchEnable = false,
+    bool isImageModeEnable = false,
   }) async {
     txid ??= client.generateUniqueTransactionId();
     sendingFilePlaceholders[txid] = file;
@@ -860,6 +867,7 @@ class Room {
       'body': file.name,
       'filename': file.name,
       'webSearch': isWebSearchEnable,
+      'imageMode': isImageModeEnable,
       if (encryptedFile == null) 'url': uploadResp.toString(),
       if (encryptedFile != null)
         'file': {

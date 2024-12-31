@@ -31,15 +31,17 @@ extension CommandsClientExtension on Client {
 
   /// Parse and execute a string, `msg` is the input. Optionally `inReplyTo` is the event being
   /// replied to and `editEventId` is the eventId of the event being replied to
-  Future<String?> parseAndRunCommand(Room room,
-      String msg, {
-        Event? inReplyTo,
-        String? editEventId,
-        String? txid,
-        String? threadRootEventId,
-        String? threadLastEventId,
-        bool isWebSearchEnable = false,
-      }) async {
+  Future<String?> parseAndRunCommand(
+    Room room,
+    String msg, {
+    Event? inReplyTo,
+    String? editEventId,
+    String? txid,
+    String? threadRootEventId,
+    String? threadLastEventId,
+    bool isWebSearchEnable = false,
+    bool isImageModeEnable = false,
+  }) async {
     final args = CommandArgs(
       inReplyTo: inReplyTo,
       editEventId: editEventId,
@@ -49,6 +51,7 @@ extension CommandsClientExtension on Client {
       threadRootEventId: threadRootEventId,
       threadLastEventId: threadLastEventId,
       isWebSearchEnable: isWebSearchEnable,
+      isImageModeEnable: isImageModeEnable,
     );
     if (!msg.startsWith('/')) {
       final sendCommand = commands['send'];
@@ -100,6 +103,7 @@ extension CommandsClientExtension on Client {
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
         isWebSearchEnable: args.isWebSearchEnable,
+        isImageModeEnable: args.isImageModeEnable,
       );
     });
     addCommand('me', (CommandArgs args) async {
@@ -113,6 +117,7 @@ extension CommandsClientExtension on Client {
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
         isWebSearchEnable: args.isWebSearchEnable,
+        isImageModeEnable: args.isImageModeEnable,
       );
     });
     addCommand('dm', (CommandArgs args) async {
@@ -139,6 +144,7 @@ extension CommandsClientExtension on Client {
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
         isWebSearchEnable: args.isWebSearchEnable,
+        isImageModeEnable: args.isImageModeEnable,
       );
     });
     addCommand('html', (CommandArgs args) async {
@@ -317,8 +323,10 @@ class CommandArgs {
   String? threadRootEventId;
   String? threadLastEventId;
   bool isWebSearchEnable;
+  bool isImageModeEnable;
 
-  CommandArgs({required this.msg,
+  CommandArgs({
+    required this.msg,
     this.editEventId,
     this.inReplyTo,
     required this.room,
@@ -326,5 +334,6 @@ class CommandArgs {
     this.threadRootEventId,
     this.threadLastEventId,
     required this.isWebSearchEnable,
+    required this.isImageModeEnable,
   });
 }
