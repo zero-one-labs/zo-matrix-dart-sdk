@@ -41,6 +41,8 @@ extension CommandsClientExtension on Client {
     String? threadLastEventId,
     bool isWebSearchEnable = false,
     bool isImageModeEnable = false,
+    bool isEchoChamber = false,
+    String? echoChamberData,
   }) async {
     final args = CommandArgs(
       inReplyTo: inReplyTo,
@@ -52,6 +54,8 @@ extension CommandsClientExtension on Client {
       threadLastEventId: threadLastEventId,
       isWebSearchEnable: isWebSearchEnable,
       isImageModeEnable: isImageModeEnable,
+      isEchoChamber: isEchoChamber,
+      echoChamberData: echoChamberData,
     );
     if (!msg.startsWith('/')) {
       final sendCommand = commands['send'];
@@ -104,6 +108,8 @@ extension CommandsClientExtension on Client {
         threadLastEventId: args.threadLastEventId,
         isWebSearchEnable: args.isWebSearchEnable,
         isImageModeEnable: args.isImageModeEnable,
+        isEchoChamber: args.isEchoChamber,
+        echoChamberData: args.echoChamberData,
       );
     });
     addCommand('me', (CommandArgs args) async {
@@ -118,6 +124,8 @@ extension CommandsClientExtension on Client {
         threadLastEventId: args.threadLastEventId,
         isWebSearchEnable: args.isWebSearchEnable,
         isImageModeEnable: args.isImageModeEnable,
+        isEchoChamber: args.isEchoChamber,
+        echoChamberData: args.echoChamberData,
       );
     });
     addCommand('dm', (CommandArgs args) async {
@@ -145,6 +153,8 @@ extension CommandsClientExtension on Client {
         threadLastEventId: args.threadLastEventId,
         isWebSearchEnable: args.isWebSearchEnable,
         isImageModeEnable: args.isImageModeEnable,
+        isEchoChamber: args.isEchoChamber,
+        echoChamberData: args.echoChamberData,
       );
     });
     addCommand('html', (CommandArgs args) async {
@@ -324,6 +334,8 @@ class CommandArgs {
   String? threadLastEventId;
   bool isWebSearchEnable;
   bool isImageModeEnable;
+  bool isEchoChamber;
+  String? echoChamberData;
 
   CommandArgs({
     required this.msg,
@@ -335,5 +347,7 @@ class CommandArgs {
     this.threadLastEventId,
     required this.isWebSearchEnable,
     required this.isImageModeEnable,
+    required this.isEchoChamber,
+    this.echoChamberData,
   });
 }

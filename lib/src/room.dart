@@ -625,6 +625,8 @@ class Room {
     String? threadLastEventId,
     bool isWebSearchEnable = false,
     bool isImageModeEnable = false,
+    bool isEchoChamber = false,
+    String? echoChamberData,
   }) {
     if (parseCommands) {
       return client.parseAndRunCommand(
@@ -637,6 +639,8 @@ class Room {
         threadLastEventId: threadLastEventId,
         isWebSearchEnable: isWebSearchEnable,
         isImageModeEnable: isImageModeEnable,
+        isEchoChamber: isEchoChamber,
+        echoChamberData: echoChamberData,
       );
     }
     final event = <String, dynamic>{
@@ -644,6 +648,8 @@ class Room {
       'body': message,
       'webSearch': isWebSearchEnable,
       'imageMode': isImageModeEnable,
+      'EchoChamber': isEchoChamber,
+      'EchoChamber_Data': echoChamberData,
     };
     if (parseMarkdown) {
       final html = markdown(
