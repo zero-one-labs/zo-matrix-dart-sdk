@@ -627,6 +627,8 @@ class Room {
     bool isImageModeEnable = false,
     bool isEchoChamber = false,
     String? echoChamberData,
+    bool isEchoSquad = false,
+    String? echoSquadData,
   }) {
     if (parseCommands) {
       return client.parseAndRunCommand(
@@ -641,6 +643,8 @@ class Room {
         isImageModeEnable: isImageModeEnable,
         isEchoChamber: isEchoChamber,
         echoChamberData: echoChamberData,
+        isEchoSquad: isEchoSquad,
+        echoSquadData: echoSquadData,
       );
     }
     final event = <String, dynamic>{
@@ -650,6 +654,8 @@ class Room {
       'imageMode': isImageModeEnable,
       'EchoChamber': isEchoChamber,
       'EchoChamber_Data': echoChamberData,
+      'EchoSquad': isEchoSquad,
+      'EchoSquad_Data': echoSquadData,
     };
     if (parseMarkdown) {
       final html = markdown(

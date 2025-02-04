@@ -43,6 +43,8 @@ extension CommandsClientExtension on Client {
     bool isImageModeEnable = false,
     bool isEchoChamber = false,
     String? echoChamberData,
+    bool isEchoSquad = false,
+    String? echoSquadData,
   }) async {
     final args = CommandArgs(
       inReplyTo: inReplyTo,
@@ -56,6 +58,8 @@ extension CommandsClientExtension on Client {
       isImageModeEnable: isImageModeEnable,
       isEchoChamber: isEchoChamber,
       echoChamberData: echoChamberData,
+      isEchoSquad: isEchoSquad,
+      echoSquadData: echoSquadData,
     );
     if (!msg.startsWith('/')) {
       final sendCommand = commands['send'];
@@ -110,6 +114,8 @@ extension CommandsClientExtension on Client {
         isImageModeEnable: args.isImageModeEnable,
         isEchoChamber: args.isEchoChamber,
         echoChamberData: args.echoChamberData,
+        isEchoSquad: args.isEchoSquad,
+        echoSquadData: args.echoSquadData,
       );
     });
     addCommand('me', (CommandArgs args) async {
@@ -126,6 +132,8 @@ extension CommandsClientExtension on Client {
         isImageModeEnable: args.isImageModeEnable,
         isEchoChamber: args.isEchoChamber,
         echoChamberData: args.echoChamberData,
+        isEchoSquad: args.isEchoSquad,
+        echoSquadData: args.echoSquadData,
       );
     });
     addCommand('dm', (CommandArgs args) async {
@@ -155,6 +163,8 @@ extension CommandsClientExtension on Client {
         isImageModeEnable: args.isImageModeEnable,
         isEchoChamber: args.isEchoChamber,
         echoChamberData: args.echoChamberData,
+        isEchoSquad: args.isEchoSquad,
+        echoSquadData: args.echoSquadData,
       );
     });
     addCommand('html', (CommandArgs args) async {
@@ -336,6 +346,8 @@ class CommandArgs {
   bool isImageModeEnable;
   bool isEchoChamber;
   String? echoChamberData;
+  bool isEchoSquad;
+  String? echoSquadData;
 
   CommandArgs({
     required this.msg,
@@ -349,5 +361,7 @@ class CommandArgs {
     required this.isImageModeEnable,
     required this.isEchoChamber,
     this.echoChamberData,
+    required this.isEchoSquad,
+    this.echoSquadData,
   });
 }
