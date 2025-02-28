@@ -80,7 +80,12 @@ abstract class DatabaseApi {
 
   /// Stores an EventUpdate object in the database. Must be called inside of
   /// [transaction].
-  Future<void> storeEventUpdate(EventUpdate eventUpdate, Client client);
+  Future<void> storeEventUpdate(
+    String roomId,
+    StrippedStateEvent event,
+    EventUpdateType type,
+    Client client,
+  );
 
   Future<Event?> getEventById(String eventId, Room room);
 
@@ -128,6 +133,8 @@ abstract class DatabaseApi {
   );
 
   Future storeAccountData(String type, Map<String, Object?> content);
+
+  Future storeRoomAccountData(String roomId, BasicEvent event);
 
   Future<Map<String, DeviceKeysList>> getUserDeviceKeys(Client client);
 
