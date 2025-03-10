@@ -631,6 +631,11 @@ class Room {
     String? echoChamberData,
     bool isEchoSquad = false,
     String? echoSquadData,
+    bool isConversation = false,
+    String? selectedConversationMembers,
+    String? fromDate,
+    String? toDate,
+    String? streamId,
     StringBuffer? commandStdout,
   }) {
     if (parseCommands) {
@@ -649,6 +654,10 @@ class Room {
         isEchoSquad: isEchoSquad,
         echoSquadData: echoSquadData,
         stdout: commandStdout,
+        isConversation: isConversation,
+        selectedConversationMembers: selectedConversationMembers,
+        fromDate: fromDate,
+        toDate: toDate,
       );
     }
     final event = <String, dynamic>{
@@ -660,6 +669,11 @@ class Room {
       'EchoChamber_Data': echoChamberData,
       'EchoSquad': isEchoSquad,
       'EchoSquad_Data': echoSquadData,
+      'is_conversation': isConversation,
+      'selected_conversation_members': selectedConversationMembers,
+      'from_date': fromDate,
+      'to_date': toDate,
+      'stream_id': streamId,
     };
     if (parseMarkdown) {
       final html = markdown(
