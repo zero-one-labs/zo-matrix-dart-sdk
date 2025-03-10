@@ -114,7 +114,7 @@ void main() {
         httpClient: FakeMatrixApi(),
         databaseBuilder: getDatabase,
       );
-      final eventUpdateListFuture = matrix.onEvent.stream.toList();
+      final eventUpdateListFuture = matrix.onTimelineEvent.stream.toList();
       final toDeviceUpdateListFuture = matrix.onToDeviceEvent.stream.toList();
       var presenceCounter = 0;
       var accountDataCounter = 0;
@@ -278,58 +278,42 @@ void main() {
         null,
       );
 
-      await matrix.onEvent.close();
+      await matrix.onTimelineEvent.close();
 
       final eventUpdateList = await eventUpdateListFuture;
 
-      expect(eventUpdateList.length, 18);
+      expect(eventUpdateList.length, 3);
 
-      expect(eventUpdateList[0].content['type'], 'm.room.member');
-      expect(eventUpdateList[0].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[0].type, EventUpdateType.state);
+      expect(eventUpdateList[0].type, 'm.room.member');
+      expect(eventUpdateList[0].roomId, '!726s6s6q:example.com');
 
-      expect(eventUpdateList[1].content['type'], 'm.room.canonical_alias');
-      expect(eventUpdateList[1].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[1].type, EventUpdateType.state);
+      expect(eventUpdateList[1].type, 'm.room.message');
+      expect(eventUpdateList[1].roomId, '!726s6s6q:example.com');
 
-      expect(eventUpdateList[2].content['type'], 'm.room.encryption');
-      expect(eventUpdateList[2].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[2].type, EventUpdateType.state);
-
-      expect(eventUpdateList[3].content['type'], 'm.room.pinned_events');
-      expect(eventUpdateList[3].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[3].type, EventUpdateType.state);
-
-      expect(eventUpdateList[4].content['type'], 'm.room.member');
-      expect(eventUpdateList[4].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[4].type, EventUpdateType.timeline);
-
-      expect(eventUpdateList[5].content['type'], 'm.room.message');
-      expect(eventUpdateList[5].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[5].type, EventUpdateType.timeline);
-
-      expect(eventUpdateList[6].content['type'], LatestReceiptState.eventType);
-      expect(eventUpdateList[6].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[6].type, EventUpdateType.accountData);
-
-      expect(eventUpdateList[7].content['type'], 'm.tag');
-      expect(eventUpdateList[7].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[7].type, EventUpdateType.accountData);
+      expect(eventUpdateList[2].type, 'm.room.message');
+      expect(eventUpdateList[2].roomId, '!726s6s6f:example.com');
 
       expect(
-        eventUpdateList[8].content['type'],
+        matrix
+            .getRoomById('!726s6s6q:example.com')
+            ?.roomAccountData['org.example.custom.room.config']
+            ?.type,
         'org.example.custom.room.config',
       );
-      expect(eventUpdateList[8].roomID, '!726s6s6q:example.com');
-      expect(eventUpdateList[8].type, EventUpdateType.accountData);
-
-      expect(eventUpdateList[9].content['type'], 'm.room.member');
-      expect(eventUpdateList[9].roomID, '!calls:example.com');
-      expect(eventUpdateList[9].type, EventUpdateType.state);
-
-      expect(eventUpdateList[10].content['type'], 'm.room.member');
-      expect(eventUpdateList[10].roomID, '!calls:example.com');
-      expect(eventUpdateList[10].type, EventUpdateType.state);
+      expect(
+        matrix
+            .getRoomById('!726s6s6q:example.com')
+            ?.roomAccountData[LatestReceiptState.eventType]
+            ?.type,
+        LatestReceiptState.eventType,
+      );
+      expect(
+        matrix
+            .getRoomById('!726s6s6q:example.com')
+            ?.roomAccountData['m.tag']
+            ?.type,
+        'm.tag',
+      );
 
       expect(
         matrix
@@ -710,6 +694,35 @@ void main() {
         }),
       );
       expect(room.lastEvent!.content['body'], '* floooof');
+
+      // Older state event should not overwrite current state events
+      room.partial = false;
+      await matrix.handleSync(
+        SyncUpdate(
+          nextBatch: '',
+          rooms: RoomsUpdate(
+            join: {
+              room.id: JoinedRoomUpdate(
+                state: [
+                  MatrixEvent(
+                    type: EventTypes.RoomMember,
+                    content: {'displayname': 'Alice Catgirl'},
+                    senderId: '@alice:example.com',
+                    eventId: 'oldEventId',
+                    stateKey: '@alice:example.com',
+                    originServerTs:
+                        DateTime.now().subtract(const Duration(days: 365 * 30)),
+                  ),
+                ],
+              ),
+            },
+          ),
+        ),
+        direction: Direction.b,
+      );
+      room.partial = true;
+      expect(room.getParticipants().first.id, '@alice:example.com');
+      expect(room.getParticipants().first.displayName, 'Alice Margatroid');
 
       // accepts a consecutive edit
       await matrix.handleSync(

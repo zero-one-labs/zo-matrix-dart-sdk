@@ -90,7 +90,7 @@ class Client extends MatrixApi {
 
   final bool mxidLocalPartFallback;
 
-  bool shareKeysWithUnverifiedDevices;
+  ShareKeysWith shareKeysWith;
 
   Future<void> Function(Client client)? onSoftLogout;
 
@@ -98,7 +98,7 @@ class Client extends MatrixApi {
   DateTime? _accessTokenExpiresAt;
 
   // For CommandsClientExtension
-  final Map<String, FutureOr<String?> Function(CommandArgs)> commands = {};
+  final Map<String, CommandExecutionCallback> commands = {};
   final Filter syncFilter;
 
   final NativeImplementations nativeImplementations;
@@ -106,6 +106,8 @@ class Client extends MatrixApi {
   String? _syncFilterId;
 
   String? get syncFilterId => _syncFilterId;
+
+  final bool convertLinebreaksInFormatting;
 
   final ComputeCallback? compute;
 
@@ -217,7 +219,7 @@ class Client extends MatrixApi {
     Duration defaultNetworkRequestTimeout = const Duration(seconds: 35),
     this.sendTimelineEventTimeout = const Duration(minutes: 1),
     this.customImageResizer,
-    this.shareKeysWithUnverifiedDevices = true,
+    this.shareKeysWith = ShareKeysWith.crossVerifiedIfEnabled,
     this.enableDehydratedDevices = false,
     this.receiptsPublicByDefault = true,
 
@@ -233,6 +235,10 @@ class Client extends MatrixApi {
     /// support.
     this.customRefreshTokenLifetime,
     this.typingIndicatorTimeout = const Duration(seconds: 30),
+
+    /// When sending a formatted message, converting linebreaks in markdown to
+    /// <br/> tags:
+    this.convertLinebreaksInFormatting = true,
   })  : syncFilter = syncFilter ??
             Filter(
               room: RoomFilter(
@@ -544,10 +550,10 @@ class Client extends MatrixApi {
       final versions = await getVersions();
       if (!versions.versions
           .any((version) => supportedVersions.contains(version))) {
-        throw BadServerVersionsException(
-          versions.versions.toSet(),
-          supportedVersions,
+        Logs().w(
+          'Server supports the versions: ${versions.toString()} but this application is only compatible with ${supportedVersions.toString()}.',
         );
+        assert(false);
       }
 
       final loginTypes = await getLoginFlows() ?? [];
@@ -1202,7 +1208,7 @@ class Client extends MatrixApi {
           roomAccountData: roomUpdate.accountData
                   ?.asMap()
                   .map((k, v) => MapEntry(v.type, v)) ??
-              <String, BasicRoomEvent>{},
+              <String, BasicEvent>{},
         );
     // Set membership of room to leave, in the case we got a left room passed, otherwise
     // the left room would have still membership join, which would be wrong for the setState later
@@ -1636,7 +1642,22 @@ class Client extends MatrixApi {
     return pushrules != null ? TryGetPushRule.tryFromJson(pushrules) : null;
   }
 
-  static const Set<String> supportedVersions = {'v1.1', 'v1.2'};
+  static const Set<String> supportedVersions = {
+    'v1.1',
+    'v1.2',
+    'v1.3',
+    'v1.4',
+    'v1.5',
+    'v1.6',
+    'v1.7',
+    'v1.8',
+    'v1.9',
+    'v1.10',
+    'v1.11',
+    'v1.12',
+    'v1.13',
+  };
+
   static const List<String> supportedDirectEncryptionAlgorithms = [
     AlgorithmTypes.olmV1Curve25519AesSha2,
   ];
@@ -1649,7 +1670,27 @@ class Client extends MatrixApi {
   /// the app receives a new synchronization, this event is called for every signal
   /// to update the GUI. For example, for a new message, it is called:
   /// onRoomEvent( "m.room.message", "!chat_id:server.com", "timeline", {sender: "@bob:server.com", body: "Hello world"} )
+  // ignore: deprecated_member_use_from_same_package
+  @Deprecated(
+    'Use `onTimelineEvent`, `onHistoryEvent` or `onNotification` instead.',
+  )
   final CachedStreamController<EventUpdate> onEvent = CachedStreamController();
+
+  /// A stream of all incoming timeline events for all rooms **after**
+  /// decryption. The events are coming in the same order as they come down from
+  /// the sync.
+  final CachedStreamController<Event> onTimelineEvent =
+      CachedStreamController();
+
+  /// A stream for all incoming historical timeline events **after** decryption
+  /// triggered by a `Room.requestHistory()` call or a method which calls it.
+  final CachedStreamController<Event> onHistoryEvent = CachedStreamController();
+
+  /// A stream of incoming Events **after** decryption which **should** trigger
+  /// a (local) notification. This includes timeline events but also
+  /// invite states. Excluded events are those sent by the user themself or
+  /// not matching the push rules.
+  final CachedStreamController<Event> onNotification = CachedStreamController();
 
   /// The onToDeviceEvent is called when there comes a new to device event. It is
   /// already decrypted if necessary.
@@ -1891,11 +1932,9 @@ class Client extends MatrixApi {
     if (storeInDatabase) {
       await database?.transaction(() async {
         await database.storeEventUpdate(
-          EventUpdate(
-            roomID: roomId,
-            type: EventUpdateType.timeline,
-            content: event.toJson(),
-          ),
+          roomId,
+          event,
+          EventUpdateType.timeline,
           this,
         );
       });
@@ -2561,7 +2600,7 @@ class Client extends MatrixApi {
 
       final room = getRoomById(roomId);
       if (room != null) {
-        final List<BasicEvent> events = [];
+        final events = <Event>[];
         for (final event in _eventsPendingDecryption) {
           if (event.event.room.id != roomId) continue;
           if (!sessionIds.contains(
@@ -2573,7 +2612,7 @@ class Client extends MatrixApi {
           final decryptedEvent =
               await encryption!.decryptRoomEvent(event.event);
           if (decryptedEvent.type != EventTypes.Encrypted) {
-            events.add(BasicEvent.fromJson(decryptedEvent.content));
+            events.add(decryptedEvent);
           }
         }
 
@@ -2628,8 +2667,27 @@ class Client extends MatrixApi {
       if (syncRoomUpdate is JoinedRoomUpdate) {
         final state = syncRoomUpdate.state;
 
+        // If we are receiving states when fetching history we need to check if
+        // we are not overwriting a newer state.
+        if (direction == Direction.b) {
+          await room.postLoad();
+          state?.removeWhere((state) {
+            final existingState =
+                room.getState(state.type, state.stateKey ?? '');
+            if (existingState == null) return false;
+            if (existingState is User) {
+              return existingState.originServerTs
+                      ?.isAfter(state.originServerTs) ??
+                  true;
+            }
+            if (existingState is MatrixEvent) {
+              return existingState.originServerTs.isAfter(state.originServerTs);
+            }
+            return true;
+          });
+        }
+
         if (state != null && state.isNotEmpty) {
-          // TODO: This method seems to be comperatively slow for some updates
           await _handleRoomEvents(
             room,
             state,
@@ -2653,11 +2711,10 @@ class Client extends MatrixApi {
 
         final accountData = syncRoomUpdate.accountData;
         if (accountData != null && accountData.isNotEmpty) {
-          await _handleRoomEvents(
-            room,
-            accountData,
-            EventUpdateType.accountData,
-          );
+          for (final event in accountData) {
+            await database?.storeRoomAccountData(room.id, event);
+            room.roomAccountData[event.type] = event;
+          }
         }
       }
 
@@ -2673,12 +2730,9 @@ class Client extends MatrixApi {
         }
         final accountData = syncRoomUpdate.accountData;
         if (accountData != null && accountData.isNotEmpty) {
-          await _handleRoomEvents(
-            room,
-            accountData,
-            EventUpdateType.accountData,
-            store: false,
-          );
+          for (final event in accountData) {
+            room.roomAccountData[event.type] = event;
+          }
         }
         final state = syncRoomUpdate.state;
         if (state != null && state.isNotEmpty) {
@@ -2701,7 +2755,7 @@ class Client extends MatrixApi {
     }
   }
 
-  Future<void> _handleEphemerals(Room room, List<BasicRoomEvent> events) async {
+  Future<void> _handleEphemerals(Room room, List<BasicEvent> events) async {
     final List<ReceiptEventContent> receipts = [];
 
     for (final event in events) {
@@ -2722,17 +2776,12 @@ class Client extends MatrixApi {
         await receiptStateContent.update(e, room);
       }
 
-      await _handleRoomEvents(
-        room,
-        [
-          BasicRoomEvent(
-            type: LatestReceiptState.eventType,
-            roomId: room.id,
-            content: receiptStateContent.toJson(),
-          ),
-        ],
-        EventUpdateType.accountData,
+      final event = BasicEvent(
+        type: LatestReceiptState.eventType,
+        content: receiptStateContent.toJson(),
       );
+      await database?.storeRoomAccountData(room.id, event);
+      room.roomAccountData[event.type] = event;
     }
   }
 
@@ -2741,7 +2790,7 @@ class Client extends MatrixApi {
 
   Future<void> _handleRoomEvents(
     Room room,
-    List<BasicEvent> events,
+    List<StrippedStateEvent> events,
     EventUpdateType type, {
     bool store = true,
   }) async {
@@ -2765,14 +2814,12 @@ class Client extends MatrixApi {
       if (event is MatrixEvent &&
           event.type == EventTypes.Encrypted &&
           encryptionEnabled) {
-        final decrypted = await encryption!.decryptRoomEvent(
+        event = await encryption!.decryptRoomEvent(
           Event.fromMatrixEvent(event, room),
           updateType: type,
         );
 
-        if (decrypted.type != EventTypes.Encrypted) {
-          event = decrypted;
-        } else {
+        if (event.type == EventTypes.Encrypted) {
           // if the event failed to decrypt, add it to the queue
           _eventsPendingDecryption.add(
             _EventPendingDecryption(Event.fromMatrixEvent(event, room)),
@@ -2780,14 +2827,8 @@ class Client extends MatrixApi {
         }
       }
 
-      final update = EventUpdate(
-        roomID: room.id,
-        type: type,
-        content: event.toJson(),
-      );
-
       // Any kind of member change? We should invalidate the profile then:
-      if (event is StrippedStateEvent && event.type == EventTypes.RoomMember) {
+      if (event.type == EventTypes.RoomMember) {
         final userId = event.stateKey;
         if (userId != null) {
           // We do not re-request the profile here as this would lead to
@@ -2809,23 +2850,70 @@ class Client extends MatrixApi {
           room.setState(user);
         }
       }
-      _updateRoomsByEventUpdate(room, update);
+      _updateRoomsByEventUpdate(room, event, type);
       if (store) {
-        await database?.storeEventUpdate(update, this);
+        await database?.storeEventUpdate(room.id, event, type, this);
       }
-      if (encryptionEnabled) {
-        await encryption?.handleEventUpdate(update);
+      if (event is MatrixEvent && encryptionEnabled) {
+        await encryption?.handleEventUpdate(
+          Event.fromMatrixEvent(event, room),
+          type,
+        );
       }
-      onEvent.add(update);
+
+      // ignore: deprecated_member_use_from_same_package
+      onEvent.add(
+        // ignore: deprecated_member_use_from_same_package
+        EventUpdate(
+          roomID: room.id,
+          type: type,
+          content: event.toJson(),
+        ),
+      );
+      if (event is MatrixEvent) {
+        final timelineEvent = Event.fromMatrixEvent(event, room);
+        switch (type) {
+          case EventUpdateType.timeline:
+            onTimelineEvent.add(timelineEvent);
+            if (prevBatch != null &&
+                timelineEvent.senderId != userID &&
+                room.notificationCount > 0 &&
+                pushruleEvaluator.match(timelineEvent).notify) {
+              onNotification.add(timelineEvent);
+            }
+            break;
+          case EventUpdateType.history:
+            onHistoryEvent.add(timelineEvent);
+            break;
+          default:
+            break;
+        }
+      }
+
+      // Trigger local notification for a new invite:
+      if (prevBatch != null &&
+          type == EventUpdateType.inviteState &&
+          event.type == EventTypes.RoomMember &&
+          event.stateKey == userID) {
+        onNotification.add(
+          Event(
+            type: event.type,
+            eventId: 'invite_for_${room.id}',
+            senderId: event.senderId,
+            originServerTs: DateTime.now(),
+            stateKey: event.stateKey,
+            content: event.content,
+            room: room,
+          ),
+        );
+      }
 
       if (prevBatch != null &&
           (type == EventUpdateType.timeline ||
               type == EventUpdateType.decryptedTimelineQueue)) {
-        if ((update.content
-                .tryGet<String>('type')
-                ?.startsWith(CallConstants.callEventsRegxp) ??
-            false)) {
-          final callEvent = Event.fromJson(update.content, room);
+        if (event is MatrixEvent &&
+            (event.type.startsWith(CallConstants.callEventsRegxp))) {
+          final callEvent = Event.fromMatrixEvent(event, room);
           callEvents.add(callEvent);
         }
       }
@@ -2925,23 +3013,34 @@ class Client extends MatrixApi {
     return room;
   }
 
-  void _updateRoomsByEventUpdate(Room room, EventUpdate eventUpdate) {
-    if (eventUpdate.type == EventUpdateType.history) return;
+  void _updateRoomsByEventUpdate(
+    Room room,
+    StrippedStateEvent eventUpdate,
+    EventUpdateType type,
+  ) {
+    if (type == EventUpdateType.history) return;
 
-    switch (eventUpdate.type) {
+    switch (type) {
       case EventUpdateType.inviteState:
-        room.setState(StrippedStateEvent.fromJson(eventUpdate.content));
+        room.setState(eventUpdate);
         break;
       case EventUpdateType.state:
       case EventUpdateType.timeline:
-        final event = Event.fromJson(eventUpdate.content, room);
+        if (eventUpdate is! MatrixEvent) {
+          Logs().wtf(
+            'Passed in a ${eventUpdate.runtimeType} with $type to _updateRoomsByEventUpdate(). This should never happen!',
+          );
+          assert(eventUpdate is! MatrixEvent);
+          return;
+        }
+        final event = Event.fromMatrixEvent(eventUpdate, room);
 
         // Update the room state:
         if (event.stateKey != null &&
             (!room.partial || importantStateEvents.contains(event.type))) {
           room.setState(event);
         }
-        if (eventUpdate.type != EventUpdateType.timeline) break;
+        if (type != EventUpdateType.timeline) break;
 
         // If last event is null or not a valid room preview event anyway,
         // just use this:
@@ -2980,10 +3079,6 @@ class Client extends MatrixApi {
         room.lastEvent = event;
 
         break;
-      case EventUpdateType.accountData:
-        room.roomAccountData[eventUpdate.content['type']] =
-            BasicRoomEvent.fromJson(eventUpdate.content);
-        break;
       case EventUpdateType.history:
       case EventUpdateType.decryptedTimelineQueue:
         break;
@@ -3014,8 +3109,8 @@ class Client extends MatrixApi {
             a.notificationCount != b.notificationCount) {
           return b.notificationCount.compareTo(a.notificationCount);
         } else {
-          return b.timeCreated.millisecondsSinceEpoch
-              .compareTo(a.timeCreated.millisecondsSinceEpoch);
+          return b.latestEventReceivedTime.millisecondsSinceEpoch
+              .compareTo(a.latestEventReceivedTime.millisecondsSinceEpoch);
         }
       };
 
@@ -3929,16 +4024,6 @@ enum SyncStatus {
   error,
 }
 
-class BadServerVersionsException implements Exception {
-  final Set<String> serverVersions, supportedVersions;
-
-  BadServerVersionsException(this.serverVersions, this.supportedVersions);
-
-  @override
-  String toString() =>
-      'Server supports the versions: ${serverVersions.toString()} but this application is only compatible with ${supportedVersions.toString()}.';
-}
-
 class BadServerLoginTypesException implements Exception {
   final Set<String> serverLoginTypes, supportedLoginTypes;
 
@@ -4022,4 +4107,26 @@ enum InitState {
 
   /// Initialization has been completed with an error.
   error,
+}
+
+/// Sets the security level with which devices keys should be shared with
+enum ShareKeysWith {
+  /// Keys are shared with all devices if they are not explicitely blocked
+  all,
+
+  /// Once a user has enabled cross signing, keys are no longer shared with
+  /// devices which are not cross verified by the cross signing keys of this
+  /// user. This does not require that the user needs to be verified.
+  crossVerifiedIfEnabled,
+
+  /// Keys are only shared with cross verified devices. If a user has not
+  /// enabled cross signing, then all devices must be verified manually first.
+  /// This does not require that the user needs to be verified.
+  crossVerified,
+
+  /// Keys are only shared with direct verified devices. So either the device
+  /// or the user must be manually verified first, before keys are shared. By
+  /// using cross signing, it is enough to verify the user and then the user
+  /// can verify their devices.
+  directlyVerifiedOnly,
 }
