@@ -635,6 +635,7 @@ class Room {
     String? selectedConversationMembers,
     String? fromDate,
     String? toDate,
+    String? streamId,
     StringBuffer? commandStdout,
   }) {
     if (parseCommands) {
@@ -672,6 +673,7 @@ class Room {
       'selected_conversation_members': selectedConversationMembers,
       'from_date': fromDate,
       'to_date': toDate,
+      'stream_id': streamId,
     };
     if (parseMarkdown) {
       final html = markdown(

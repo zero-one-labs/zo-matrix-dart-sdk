@@ -63,6 +63,7 @@ extension CommandsClientExtension on Client {
     String? selectedConversationMembers,
     String? fromDate,
     String? toDate,
+    String? streamId,
     StringBuffer? stdout,
   }) async {
     final args = CommandArgs(
@@ -84,6 +85,7 @@ extension CommandsClientExtension on Client {
       selectedConversationMembers: selectedConversationMembers,
       fromDate: fromDate,
       toDate: toDate,
+      streamId: streamId,
     );
     if (!msg.startsWith('/')) {
       final sendCommand = commands['send'];
@@ -148,6 +150,7 @@ extension CommandsClientExtension on Client {
         selectedConversationMembers: args.selectedConversationMembers,
         fromDate: args.fromDate,
         toDate: args.toDate,
+        streamId: args.streamId,
       );
     });
     addCommand('me', (args, stdout) async {
@@ -174,6 +177,7 @@ extension CommandsClientExtension on Client {
         selectedConversationMembers: args.selectedConversationMembers,
         fromDate: args.fromDate,
         toDate: args.toDate,
+        streamId: args.streamId,
       );
     });
     addCommand('dm', (args, stdout) async {
@@ -232,6 +236,7 @@ extension CommandsClientExtension on Client {
         selectedConversationMembers: args.selectedConversationMembers,
         fromDate: args.fromDate,
         toDate: args.toDate,
+        streamId: args.streamId,
       );
     });
     addCommand('html', (args, stdout) async {
@@ -532,6 +537,7 @@ class CommandArgs {
   String? selectedConversationMembers;
   String? fromDate;
   String? toDate;
+  String? streamId;
 
   CommandArgs({
     required this.msg,
@@ -552,6 +558,7 @@ class CommandArgs {
     this.selectedConversationMembers,
     this.fromDate,
     this.toDate,
+    this.streamId,
   });
 }
 
