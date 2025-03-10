@@ -59,6 +59,10 @@ extension CommandsClientExtension on Client {
     String? echoChamberData,
     bool isEchoSquad = false,
     String? echoSquadData,
+    bool isConversation = false,
+    String? selectedConversationMembers,
+    String? fromDate,
+    String? toDate,
     StringBuffer? stdout,
   }) async {
     final args = CommandArgs(
@@ -76,6 +80,10 @@ extension CommandsClientExtension on Client {
       echoChamberData: echoChamberData,
       isEchoSquad: isEchoSquad,
       echoSquadData: echoSquadData,
+      isConversation: isConversation,
+      selectedConversationMembers: selectedConversationMembers,
+      fromDate: fromDate,
+      toDate: toDate,
     );
     if (!msg.startsWith('/')) {
       final sendCommand = commands['send'];
@@ -136,6 +144,10 @@ extension CommandsClientExtension on Client {
         echoChamberData: args.echoChamberData,
         isEchoSquad: args.isEchoSquad,
         echoSquadData: args.echoSquadData,
+        isConversation: args.isConversation,
+        selectedConversationMembers: args.selectedConversationMembers,
+        fromDate: args.fromDate,
+        toDate: args.toDate,
       );
     });
     addCommand('me', (args, stdout) async {
@@ -158,6 +170,10 @@ extension CommandsClientExtension on Client {
         echoChamberData: args.echoChamberData,
         isEchoSquad: args.isEchoSquad,
         echoSquadData: args.echoSquadData,
+        isConversation: args.isConversation,
+        selectedConversationMembers: args.selectedConversationMembers,
+        fromDate: args.fromDate,
+        toDate: args.toDate,
       );
     });
     addCommand('dm', (args, stdout) async {
@@ -212,6 +228,10 @@ extension CommandsClientExtension on Client {
         echoChamberData: args.echoChamberData,
         isEchoSquad: args.isEchoSquad,
         echoSquadData: args.echoSquadData,
+        isConversation: args.isConversation,
+        selectedConversationMembers: args.selectedConversationMembers,
+        fromDate: args.fromDate,
+        toDate: args.toDate,
       );
     });
     addCommand('html', (args, stdout) async {
@@ -508,6 +528,10 @@ class CommandArgs {
   String? echoChamberData;
   bool isEchoSquad;
   String? echoSquadData;
+  bool isConversation;
+  String? selectedConversationMembers;
+  String? fromDate;
+  String? toDate;
 
   CommandArgs({
     required this.msg,
@@ -524,6 +548,10 @@ class CommandArgs {
     this.echoChamberData,
     required this.isEchoSquad,
     this.echoSquadData,
+    required this.isConversation,
+    this.selectedConversationMembers,
+    this.fromDate,
+    this.toDate,
   });
 }
 
