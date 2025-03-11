@@ -658,6 +658,7 @@ class Room {
         selectedConversationMembers: selectedConversationMembers,
         fromDate: fromDate,
         toDate: toDate,
+        streamId: streamId,
       );
     }
     final event = <String, dynamic>{
