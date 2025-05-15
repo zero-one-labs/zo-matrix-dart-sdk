@@ -239,6 +239,7 @@ class Client extends MatrixApi {
     /// When sending a formatted message, converting linebreaks in markdown to
     /// <br/> tags:
     this.convertLinebreaksInFormatting = true,
+    this.dehydratedDeviceDisplayName = 'Dehydrated Device',
   })  : syncFilter = syncFilter ??
             Filter(
               room: RoomFilter(
@@ -378,6 +379,8 @@ class Client extends MatrixApi {
 
   bool enableDehydratedDevices = false;
 
+  final String dehydratedDeviceDisplayName;
+
   /// Whether read receipts are sent as public receipts by default or just as private receipts.
   bool receiptsPublicByDefault = true;
 
@@ -453,7 +456,8 @@ class Client extends MatrixApi {
   Map<String, dynamic> get directChats =>
       _accountData['m.direct']?.content ?? {};
 
-  /// Returns the (first) room ID from the store which is a private chat with the user [userId].
+  /// Returns the first room ID from the store (the room with the latest event)
+  /// which is a private chat with the user [userId].
   /// Returns null if there is none.
   String? getDirectChatFromUserId(String userId) {
     final directChats = _accountData['m.direct']?.content[userId];
@@ -583,7 +587,13 @@ class Client extends MatrixApi {
   /// The result of this call is stored in [wellKnown] for later use at runtime.
   @override
   Future<DiscoveryInformation> getWellknown() async {
-    final wellKnown = await super.getWellknown();
+    final wellKnownResponse = await httpClient.get(
+      Uri.https(userID!.domain!, '/.well-known/matrix/client'),
+    );
+    final wellKnown = DiscoveryInformation.fromJson(
+      jsonDecode(utf8.decode(wellKnownResponse.bodyBytes))
+          as Map<String, Object?>,
+    );
 
     // do not reset the well known here, so super call
     super.homeserver = wellKnown.mHomeserver.baseUrl.stripTrailingSlash();
@@ -785,10 +795,11 @@ class Client extends MatrixApi {
     bool waitForSync = true,
     Map<String, dynamic>? powerLevelContentOverride,
     CreateRoomPreset? preset = CreateRoomPreset.trustedPrivateChat,
+    bool skipExistingChat = false,
   }) async {
     // Try to find an existing direct chat
     final directChatRoomId = getDirectChatFromUserId(mxid);
-    if (directChatRoomId != null) {
+    if (directChatRoomId != null && !skipExistingChat) {
       final room = getRoomById(directChatRoomId);
       if (room != null) {
         if (room.membership == Membership.join) {
@@ -1656,6 +1667,7 @@ class Client extends MatrixApi {
     'v1.11',
     'v1.12',
     'v1.13',
+    'v1.14',
   };
 
   static const List<String> supportedDirectEncryptionAlgorithms = [
@@ -2268,8 +2280,8 @@ class Client extends MatrixApi {
 
   /// Immediately start a sync and wait for completion.
   /// If there is an active sync already, wait for the active sync instead.
-  Future<void> oneShotSync() {
-    return _sync();
+  Future<void> oneShotSync({Duration? timeout}) {
+    return _sync(timeout: timeout);
   }
 
   /// Pass a timeout to set how long the server waits before sending an empty response.
@@ -2850,7 +2862,7 @@ class Client extends MatrixApi {
           room.setState(user);
         }
       }
-      _updateRoomsByEventUpdate(room, event, type);
+      await _updateRoomsByEventUpdate(room, event, type);
       if (store) {
         await database?.storeEventUpdate(room.id, event, type, this);
       }
@@ -2985,14 +2997,18 @@ class Client extends MatrixApi {
                 (chatUpdate.unreadNotifications?.highlightCount ?? 0) ||
             chatUpdate.summary != null ||
             chatUpdate.timeline?.prevBatch != null)) {
+      /// 1. [InvitedRoomUpdate] doesn't have prev_batch, so we want to set it in case
+      ///    the room first appeared in sync update when membership was invite.
+      /// 2. We also reset the prev_batch if the timeline is limited.
+      if (rooms[roomIndex].membership == Membership.invite ||
+          chatUpdate.timeline?.limited == true) {
+        rooms[roomIndex].prev_batch = chatUpdate.timeline?.prevBatch;
+      }
       rooms[roomIndex].membership = membership;
       rooms[roomIndex].notificationCount =
           chatUpdate.unreadNotifications?.notificationCount ?? 0;
       rooms[roomIndex].highlightCount =
           chatUpdate.unreadNotifications?.highlightCount ?? 0;
-      if (chatUpdate.timeline?.prevBatch != null) {
-        rooms[roomIndex].prev_batch = chatUpdate.timeline?.prevBatch;
-      }
 
       final summary = chatUpdate.summary;
       if (summary != null) {
@@ -3013,11 +3029,11 @@ class Client extends MatrixApi {
     return room;
   }
 
-  void _updateRoomsByEventUpdate(
+  Future<void> _updateRoomsByEventUpdate(
     Room room,
     StrippedStateEvent eventUpdate,
     EventUpdateType type,
-  ) {
+  ) async {
     if (type == EventUpdateType.history) return;
 
     switch (type) {
@@ -3053,11 +3069,27 @@ class Client extends MatrixApi {
         if (event.type == EventTypes.Redaction &&
             ({
               room.lastEvent?.eventId,
-              room.lastEvent?.relationshipEventId,
             }.contains(
               event.redacts ?? event.content.tryGet<String>('redacts'),
             ))) {
           room.lastEvent?.setRedactionEvent(event);
+          break;
+        }
+        // Is this event redacting the last event which is a edited event.
+        final relationshipEventId = room.lastEvent?.relationshipEventId;
+        if (relationshipEventId != null &&
+            relationshipEventId ==
+                (event.redacts ?? event.content.tryGet<String>('redacts')) &&
+            event.type == EventTypes.Redaction &&
+            room.lastEvent?.relationshipType == RelationshipTypes.edit) {
+          final originalEvent = await database?.getEventById(
+                relationshipEventId,
+                room,
+              ) ??
+              room.lastEvent;
+          // Manually remove the data as it's already in cache until relogin.
+          originalEvent?.setRedactionEvent(event);
+          room.lastEvent = originalEvent;
           break;
         }
 
@@ -3673,7 +3705,6 @@ class Client extends MatrixApi {
   }) =>
       super.joinRoom(
         roomIdOrAlias,
-        serverName: via ?? serverName,
         via: via ?? serverName,
         reason: reason,
         thirdPartySigned: thirdPartySigned,
