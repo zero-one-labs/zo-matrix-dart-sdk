@@ -53,6 +53,17 @@ extension CommandsClientExtension on Client {
     String? txid,
     String? threadRootEventId,
     String? threadLastEventId,
+    bool isWebSearchEnable = false,
+    bool isImageModeEnable = false,
+    bool isEchoChamber = false,
+    String? echoChamberData,
+    bool isEchoSquad = false,
+    String? echoSquadData,
+    bool isConversation = false,
+    String? selectedConversationMembers,
+    String? fromDate,
+    String? toDate,
+    String? streamId,
     StringBuffer? stdout,
   }) async {
     final args = CommandArgs(
@@ -64,6 +75,17 @@ extension CommandsClientExtension on Client {
       txid: txid,
       threadRootEventId: threadRootEventId,
       threadLastEventId: threadLastEventId,
+      isWebSearchEnable: isWebSearchEnable,
+      isImageModeEnable: isImageModeEnable,
+      isEchoChamber: isEchoChamber,
+      echoChamberData: echoChamberData,
+      isEchoSquad: isEchoSquad,
+      echoSquadData: echoSquadData,
+      isConversation: isConversation,
+      selectedConversationMembers: selectedConversationMembers,
+      fromDate: fromDate,
+      toDate: toDate,
+      streamId: streamId,
     );
     if (!msg.startsWith('/')) {
       final sendCommand = commands['send'];
@@ -118,6 +140,17 @@ extension CommandsClientExtension on Client {
         txid: args.txid,
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
+        isWebSearchEnable: args.isWebSearchEnable,
+        isImageModeEnable: args.isImageModeEnable,
+        isEchoChamber: args.isEchoChamber,
+        echoChamberData: args.echoChamberData,
+        isEchoSquad: args.isEchoSquad,
+        echoSquadData: args.echoSquadData,
+        isConversation: args.isConversation,
+        selectedConversationMembers: args.selectedConversationMembers,
+        fromDate: args.fromDate,
+        toDate: args.toDate,
+        streamId: args.streamId,
       );
     });
     addCommand('me', (args, stdout) async {
@@ -134,6 +167,17 @@ extension CommandsClientExtension on Client {
         txid: args.txid,
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
+        isWebSearchEnable: args.isWebSearchEnable,
+        isImageModeEnable: args.isImageModeEnable,
+        isEchoChamber: args.isEchoChamber,
+        echoChamberData: args.echoChamberData,
+        isEchoSquad: args.isEchoSquad,
+        echoSquadData: args.echoSquadData,
+        isConversation: args.isConversation,
+        selectedConversationMembers: args.selectedConversationMembers,
+        fromDate: args.fromDate,
+        toDate: args.toDate,
+        streamId: args.streamId,
       );
     });
     addCommand('dm', (args, stdout) async {
@@ -182,6 +226,17 @@ extension CommandsClientExtension on Client {
         txid: args.txid,
         threadRootEventId: args.threadRootEventId,
         threadLastEventId: args.threadLastEventId,
+        isWebSearchEnable: args.isWebSearchEnable,
+        isImageModeEnable: args.isImageModeEnable,
+        isEchoChamber: args.isEchoChamber,
+        echoChamberData: args.echoChamberData,
+        isEchoSquad: args.isEchoSquad,
+        echoSquadData: args.echoSquadData,
+        isConversation: args.isConversation,
+        selectedConversationMembers: args.selectedConversationMembers,
+        fromDate: args.fromDate,
+        toDate: args.toDate,
+        streamId: args.streamId,
       );
     });
     addCommand('html', (args, stdout) async {
@@ -482,6 +537,17 @@ class CommandArgs {
   String? txid;
   String? threadRootEventId;
   String? threadLastEventId;
+  bool isWebSearchEnable;
+  bool isImageModeEnable;
+  bool isEchoChamber;
+  String? echoChamberData;
+  bool isEchoSquad;
+  String? echoSquadData;
+  bool isConversation;
+  String? selectedConversationMembers;
+  String? fromDate;
+  String? toDate;
+  String? streamId;
 
   CommandArgs({
     required this.msg,
@@ -492,6 +558,17 @@ class CommandArgs {
     this.txid,
     this.threadRootEventId,
     this.threadLastEventId,
+    required this.isWebSearchEnable,
+    required this.isImageModeEnable,
+    required this.isEchoChamber,
+    this.echoChamberData,
+    required this.isEchoSquad,
+    this.echoSquadData,
+    required this.isConversation,
+    this.selectedConversationMembers,
+    this.fromDate,
+    this.toDate,
+    this.streamId,
   });
 }
 

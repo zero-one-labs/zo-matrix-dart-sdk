@@ -262,6 +262,8 @@ class Client extends MatrixApi {
         ) {
     if (logLevel != null) Logs().level = logLevel;
     importantStateEvents.addAll([
+      EventTypes.ZoConfig,
+      EventTypes.ZoOzoneBanner,
       EventTypes.RoomName,
       EventTypes.RoomAvatar,
       EventTypes.Encryption,
