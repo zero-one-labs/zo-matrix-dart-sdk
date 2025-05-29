@@ -11,7 +11,7 @@ The following custom state event types have been added and are used within the `
 | `zo.ozone.banner`   | Used to manage banner image within rooms.                               |
 
 ## ✉️ Custom Parameters in sendTextEvent (Room.dart)
-The sendTextEvent method in `Room.dart` has been extended with custom parameters to support advanced Zo Chat functionality.
+The `sendTextEvent` method in `Room.dart` has been extended with custom parameters to support advanced Zo Chat functionality.
 
 * ✅ Custom Parameters
 
@@ -30,6 +30,10 @@ The sendTextEvent method in `Room.dart` has been extended with custom parameters
 | `streamId`                    | `String?` | Stream-specific behavior    | Route or scope commands to a particular content stream.                         |
 
 ###### 📝 Note:
-If you add or modify any custom parameters in the `parseAndRunCommand` function (typically to support new features or command behavior), make sure to also update the `CommandArgs` class in `commands_extension.dart`.
+If you add or modify any custom parameters in the `sendTextEvent` function (e.g., to support new features or command behaviours), you must also update the following:
+1. `parseAndRunCommand` method in `room.dart`
+2. `CommandArgs` class in `commands_extension.dart`
+
+This ensures consistency and proper handling of command arguments across the system.
 
 This ensures consistency in how command arguments are parsed and handled across the system, especially for custom flags like `isEchoChamber`, `streamId`, or `isImageModeEnable`.
