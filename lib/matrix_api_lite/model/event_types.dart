@@ -25,6 +25,8 @@
 
 abstract class EventTypes {
   // Room timeline and state event types
+  static const String ZoConfig = 'zo.config';
+  static const String ZoOzoneBanner = 'zo.ozone.banner';
   static const String Message = 'm.room.message';
   static const String Sticker = 'm.sticker';
   static const String Reaction = 'm.reaction';

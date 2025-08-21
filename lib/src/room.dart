@@ -634,6 +634,17 @@ class Room {
     String msgtype = MessageTypes.Text,
     String? threadRootEventId,
     String? threadLastEventId,
+    bool isWebSearchEnable = false,
+    bool isImageModeEnable = false,
+    bool isEchoChamber = false,
+    String? echoChamberData,
+    bool isEchoSquad = false,
+    String? echoSquadData,
+    bool isConversation = false,
+    String? selectedConversationMembers,
+    String? fromDate,
+    String? toDate,
+    String? streamId,
     StringBuffer? commandStdout,
   }) {
     if (parseCommands) {
@@ -645,12 +656,34 @@ class Room {
         txid: txid,
         threadRootEventId: threadRootEventId,
         threadLastEventId: threadLastEventId,
+        isWebSearchEnable: isWebSearchEnable,
+        isImageModeEnable: isImageModeEnable,
+        isEchoChamber: isEchoChamber,
+        echoChamberData: echoChamberData,
+        isEchoSquad: isEchoSquad,
+        echoSquadData: echoSquadData,
         stdout: commandStdout,
+        isConversation: isConversation,
+        selectedConversationMembers: selectedConversationMembers,
+        fromDate: fromDate,
+        toDate: toDate,
+        streamId: streamId,
       );
     }
     final event = <String, dynamic>{
       'msgtype': msgtype,
       'body': message,
+      'webSearch': isWebSearchEnable,
+      'imageMode': isImageModeEnable,
+      'EchoChamber': isEchoChamber,
+      'EchoChamber_Data': echoChamberData,
+      'EchoSquad': isEchoSquad,
+      'EchoSquad_Data': echoSquadData,
+      'is_conversation': isConversation,
+      'selected_conversation_members': selectedConversationMembers,
+      'from_date': fromDate,
+      'to_date': toDate,
+      'stream_id': streamId,
     };
     if (parseMarkdown) {
       final html = markdown(
@@ -727,6 +760,8 @@ class Room {
     Map<String, dynamic>? extraContent,
     String? threadRootEventId,
     String? threadLastEventId,
+    bool isWebSearchEnable = false,
+    bool isImageModeEnable = false,
   }) async {
     txid ??= client.generateUniqueTransactionId();
     sendingFilePlaceholders[txid] = file;
@@ -874,6 +909,8 @@ class Room {
       'msgtype': file.msgType,
       'body': file.name,
       'filename': file.name,
+      'webSearch': isWebSearchEnable,
+      'imageMode': isImageModeEnable,
       if (encryptedFile == null) 'url': uploadResp.toString(),
       if (encryptedFile != null)
         'file': {
